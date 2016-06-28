@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"sort"
+
+	"bytes"
+
 	"github.com/hironobu-s/conoha-net/conoha"
-	"github.com/k0kubun/pp"
 	"github.com/urfave/cli"
 )
 
@@ -218,6 +221,21 @@ func cmdCreateRule(c *cli.Context) {
 	fmt.Printf("ID: %s created\n", rt.ID)
 }
 
+type DisplayData [][]string
+
+// Implements Sort interface to sort "Direction" column.
+func (d DisplayData) Len() int {
+	return len(d)
+}
+
+func (d DisplayData) Swap(i, j int) {
+	d[i], d[j] = d[j], d[i]
+}
+
+func (d DisplayData) Less(i, j int) bool {
+	return d[i][1] < d[j][1]
+}
+
 func cmdListGroup(c *cli.Context) {
 	var err error
 	openstack, err = conoha.NewOpenStack()
@@ -229,15 +247,15 @@ func cmdListGroup(c *cli.Context) {
 	if err != nil {
 		ExitOnError(err)
 	}
-	if c.Bool("all") {
+	if !c.Bool("all") {
 		groups = conoha.RemoveSystemGroups(groups)
 	}
 
-	var data [][]string
+	// Display
+	var data DisplayData
 	if len(groups) > 0 {
 		data = append(data, []string{"Name", "Direction", "EtherType", "Proto", "IP Range", "Port"})
 		for _, sg := range groups {
-			pp.Printf("%v", sg.Rules)
 			for _, rule := range sg.Rules {
 				cols := make([]string, 0, 6)
 				cols = append(cols, sg.Name, rule.Direction, rule.EtherType)
@@ -260,6 +278,9 @@ func cmdListGroup(c *cli.Context) {
 	} else {
 		data = [][]string{[]string{"No security groups found"}}
 	}
+
+	sort.Sort(data)
+
 	outputTable(data, true)
 }
 
@@ -358,28 +379,22 @@ func cmdAttachOrDetach(c *cli.Context, mode string) {
 }
 
 func OutputVps(vpss []conoha.Vps) {
-	data := make([][]string, 0, len(vpss))
-	data = append(data, []string{"VPS", "NameTag", "SecGroup", "Proto", "IP Range", "Port"})
+	numVps := len(vpss)
+	data := make([][]string, 0, numVps)
+	data = append(data, []string{"VPS", "NameTag", "SecGroup"})
 	for _, vps := range vpss {
-		for _, sg := range vps.SecurityGroups {
-			for _, rule := range sg.Rules {
-				cols := make([]string, 0, 5)
-				cols = append(cols, vps.Ports[0].IPv4Address, vps.NameTag, sg.Name)
-				if rule.IPProtocol != "" {
-					cols = append(cols, rule.IPProtocol)
-				} else {
-					cols = append(cols, "ALL")
-				}
-				cols = append(cols, rule.IPRange.CIDR)
 
-				if rule.FromPort == 0 && rule.ToPort == 0 {
-					cols = append(cols, "ALL")
-				} else {
-					cols = append(cols, fmt.Sprintf("%d - %d", rule.FromPort, rule.ToPort))
-				}
-				data = append(data, cols)
+		var buf bytes.Buffer
+		var i = 0
+		for _, sg := range vps.SecurityGroups {
+			buf.WriteString(sg.Name)
+			i++
+			if len(vps.SecurityGroups) != i {
+				buf.WriteString(", ")
 			}
 		}
+
+		data = append(data, []string{vps.Ports[0].IPv4Address, vps.NameTag, buf.String()})
 	}
 
 	outputTable(data, true)
