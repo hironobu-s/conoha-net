@@ -57,13 +57,6 @@ var commands = []cli.Command{
 	},
 
 	{
-		Name:    "update-group",
-		Aliases: []string{},
-		Usage:   "Update a security group",
-		Action:  runCmd,
-	},
-
-	{
 		Name:      "delete-group",
 		Aliases:   []string{},
 		Usage:     "Delete a security group",
