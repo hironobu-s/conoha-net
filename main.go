@@ -21,8 +21,8 @@ func run() error {
 	app.Version = "0.1"
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
-			Name:  "d,debug",
-			Usage: "Print debug informations.",
+			Name:  "debug,d",
+			Usage: "print debug informations.",
 		},
 	}
 

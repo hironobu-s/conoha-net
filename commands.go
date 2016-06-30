@@ -30,9 +30,40 @@ var queryVpsFlags = []cli.Flag{
 
 var commands = []cli.Command{
 	{
+		Name:    "list",
+		Aliases: []string{},
+		Usage:   "list all VPS",
+		Action:  runCmd,
+	},
+
+	{
+		Name:    "attach",
+		Aliases: []string{},
+		Usage:   "attach a security group to VPS",
+		Flags: append(queryVpsFlags, cli.StringFlag{
+			Name: "secgroup, s",
+		}),
+		ArgsUsage: "security-group-name",
+		Action:    runCmd,
+	},
+
+	{
+		Name:    "detach",
+		Aliases: []string{},
+		Usage:   "dettach a security group from VPS",
+		Flags: append(queryVpsFlags, cli.StringFlag{
+			Name: "secgroup, s",
+		}),
+		ArgsUsage: "security-group-name",
+		Action:    runCmd,
+	},
+
+	// ---------
+
+	{
 		Name:    "list-group",
 		Aliases: []string{},
-		Usage:   "List security groups",
+		Usage:   "list security groups and rules",
 		Flags: []cli.Flag{
 			cli.BoolFlag{
 				Name:  "all,a",
@@ -45,7 +76,7 @@ var commands = []cli.Command{
 	{
 		Name:    "create-group",
 		Aliases: []string{},
-		Usage:   "Create a security group",
+		Usage:   "create a security group",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "description,d",
@@ -59,7 +90,7 @@ var commands = []cli.Command{
 	{
 		Name:      "delete-group",
 		Aliases:   []string{},
-		Usage:     "Delete a security group",
+		Usage:     "delete a security group",
 		ArgsUsage: "security-group-name",
 		Action:    runCmd,
 	},
@@ -67,7 +98,7 @@ var commands = []cli.Command{
 	{
 		Name:    "create-rule",
 		Aliases: []string{},
-		Usage:   "Create rules",
+		Usage:   "create a security group rule",
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "d,direction",
@@ -109,37 +140,8 @@ var commands = []cli.Command{
 	{
 		Name:      "delete-rule",
 		Aliases:   []string{},
-		Usage:     "Delete a security group",
+		Usage:     "delete a security group rule",
 		ArgsUsage: "uuid-of-rule",
-		Action:    runCmd,
-	},
-
-	{
-		Name:    "list",
-		Aliases: []string{},
-		Usage:   "List VPS",
-		Action:  runCmd,
-	},
-
-	{
-		Name:    "attach",
-		Aliases: []string{},
-		Usage:   "Attach security groups to VPS",
-		Flags: append(queryVpsFlags, cli.StringFlag{
-			Name: "secgroup, s",
-		}),
-		ArgsUsage: "security-group-name",
-		Action:    runCmd,
-	},
-
-	{
-		Name:    "detach",
-		Aliases: []string{},
-		Usage:   "Dettach security groups from VPS",
-		Flags: append(queryVpsFlags, cli.StringFlag{
-			Name: "secgroup, s",
-		}),
-		ArgsUsage: "security-group-name",
 		Action:    runCmd,
 	},
 }
