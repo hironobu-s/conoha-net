@@ -9,26 +9,36 @@ import (
 )
 
 func main() {
-	enableDebugTransport()
-
 	if err := run(); err != nil {
 		ExitOnError(err)
 	}
 }
 
 func run() error {
-	logrus.SetLevel(logrus.DebugLevel)
-
 	app := cli.NewApp()
 	app.Name = "ConoHa Net"
 	app.Usage = "Security group management tool for ConoHa"
 	app.Version = "0.1"
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "d,debug",
+			Usage: "Print debug informations.",
+		},
+	}
+
+	// debug
+	app.Before = func(c *cli.Context) error {
+		if c.Bool("debug") {
+			logrus.SetLevel(logrus.DebugLevel)
+			enableDebugTransport()
+		}
+		return nil
+	}
 
 	app.Commands = commands
 	if err := app.Run(os.Args); err != nil {
 		return err
 	}
-
 	return nil
 }
 
