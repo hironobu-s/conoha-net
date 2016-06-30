@@ -81,6 +81,7 @@ var commands = []cli.Command{
 				Usage: `(Required) The direction in which the rule applied. Must be either "ingress" or "egress"`,
 				Value: "ingress",
 			},
+
 			cli.StringFlag{
 				Name:  "e,ether-type",
 				Usage: `(Required) Type of IP version. Must be either "Ipv4" or "Ipv6".`,
@@ -109,6 +110,14 @@ var commands = []cli.Command{
 			},
 		},
 		ArgsUsage: "security-group-name",
+		Action:    runCmd,
+	},
+
+	{
+		Name:      "delete-rule",
+		Aliases:   []string{},
+		Usage:     "Delete a security group",
+		ArgsUsage: "uuid-of-rule",
 		Action:    runCmd,
 	},
 
@@ -149,6 +158,8 @@ func runCmd(c *cli.Context) error {
 	switch c.Command.Name {
 	case "create-rule":
 		cmdCreateRule(c)
+	case "delete-rule":
+		cmdDeleteRule(c)
 
 	case "list-group":
 		cmdListGroup(c)
@@ -225,6 +236,25 @@ func cmdCreateRule(c *cli.Context) {
 	fmt.Printf("ID: %s created\n", rt.ID)
 }
 
+func cmdDeleteRule(c *cli.Context) {
+	var err error
+	openstack, err = conoha.NewOpenStack()
+	if err != nil {
+		ExitOnError(err)
+	}
+
+	// uuid of rule to delete
+	if c.NArg() == 0 {
+		err = fmt.Errorf("Please specify the security group name")
+		ExitOnError(err)
+	}
+	uuid := c.Args()[0]
+
+	if err = conoha.DeleteRule(openstack, uuid); err != nil {
+		ExitOnError(err)
+	}
+}
+
 type DisplayData [][]string
 
 // Implements Sort interface to sort "Direction" column.
@@ -258,11 +288,11 @@ func cmdListGroup(c *cli.Context) {
 	// Display
 	var data DisplayData
 	if len(groups) > 0 {
-		data = append(data, []string{"SecGroupName", "Direction", "EtherType", "Proto", "IP Range", "Port"})
+		data = append(data, []string{"UUID", "SecurityGroup", "Direction", "EtherType", "Proto", "IP Range", "Port"})
 		for _, sg := range groups {
 			for _, rule := range sg.Rules {
-				cols := make([]string, 0, 6)
-				cols = append(cols, sg.Name, rule.Direction, rule.EtherType)
+				cols := make([]string, 0, 7)
+				cols = append(cols, rule.ID, sg.Name, rule.Direction, rule.EtherType)
 				if rule.Protocol != "" {
 					cols = append(cols, rule.Protocol)
 				} else {

@@ -117,6 +117,14 @@ func CreateRule(os *OpenStack, rule RuleCreateOpts) (*rules.SecGroupRule, error)
 	return rt.Extract()
 }
 
+func DeleteRule(os *OpenStack, uuid string) error {
+	rt := rules.Delete(os.Network, uuid)
+	if rt.Err != nil {
+		return rt.Err
+	}
+	return nil
+}
+
 // List the user created security groups.
 func ListGroup(os *OpenStack) ([]groups.SecGroup, error) {
 	opts := groups.ListOpts{}
