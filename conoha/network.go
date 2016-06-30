@@ -22,36 +22,32 @@ const (
 	SYSTEM_SECGROUP_PREFIX  = "gncs"
 )
 
-type Port struct {
-	PortId      string
-	IPv4Address string
-	IPv6Address string
+type RuleCreateOpts struct {
+	SecurityGroupName string
+	Direction         string
+	EtherType         string
+	PortRange         string
+	Protocol          string
+	RemoteGroupID     string
+	RemoteIPPrefix    string
 }
 
-// Create a security group rule and return UUID
-type Rule struct {
-	Direction      string
-	EtherType      string
-	PortRange      string
-	Protocol       string
-	RemoteGroupID  string
-	RemoteIPPrefix string
-}
+func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err error) {
+	if r.SecurityGroupName == "" {
+		return name, opts, fmt.Errorf(`Must specify "security-group-name".`)
+	}
+	name = r.SecurityGroupName
 
-func (r *Rule) ToCreateOpts() (rules.CreateOpts, error) {
-	opts := rules.CreateOpts{}
-
-	// validation
 	if r.Direction == "ingress" || r.Direction == "egress" {
 		opts.Direction = r.Direction
 	} else {
-		return opts, fmt.Errorf(`"direction" must be either "ingress" or "egress"`)
+		return name, opts, fmt.Errorf(`"direction" must be either "ingress" or "egress"`)
 	}
 
 	if r.EtherType == "IPv4" || r.EtherType == "IPv6" {
 		opts.EtherType = r.EtherType
 	} else {
-		return opts, fmt.Errorf(`"ether-type" must be either "IPv4" or "IPv6"`)
+		return name, opts, fmt.Errorf(`"ether-type" must be either "IPv4" or "IPv6"`)
 	}
 
 	if r.Protocol == "tcp" ||
@@ -61,13 +57,13 @@ func (r *Rule) ToCreateOpts() (rules.CreateOpts, error) {
 	} else if r.Protocol == "all" {
 		r.Protocol = ""
 	} else {
-		return opts, fmt.Errorf(`invalid protocol`)
+		return name, opts, fmt.Errorf(`invalid protocol`)
 	}
 
 	if r.PortRange != "" {
 		m, err := regexp.MatchString(`^[0-9]+\:[0-9]+$`, r.PortRange)
 		if err != nil {
-			return opts, err
+			return name, opts, err
 
 		} else if m {
 			ps := strings.Split(r.PortRange, ":")
@@ -77,7 +73,7 @@ func (r *Rule) ToCreateOpts() (rules.CreateOpts, error) {
 		} else {
 			p, err := strconv.Atoi(r.PortRange)
 			if err != nil {
-				return opts, fmt.Errorf("Invalid format of PortRange. [%s]", r.PortRange)
+				return name, opts, fmt.Errorf("Invalid format of PortRange. [%s]", r.PortRange)
 			}
 			opts.PortRangeMin = p
 			opts.PortRangeMax = p
@@ -85,7 +81,7 @@ func (r *Rule) ToCreateOpts() (rules.CreateOpts, error) {
 
 		// Must specify the protocol if port range is given.
 		if opts.Protocol == "" {
-			return opts, fmt.Errorf("Must specify the protocol if port range is given.")
+			return name, opts, fmt.Errorf("Must specify the protocol if port range is given.")
 		}
 	}
 
@@ -96,11 +92,11 @@ func (r *Rule) ToCreateOpts() (rules.CreateOpts, error) {
 	if r.RemoteIPPrefix != "" {
 		opts.RemoteIPPrefix = r.RemoteIPPrefix
 	}
-	return opts, nil
+	return name, opts, nil
 }
 
-func CreateRule(os *OpenStack, name string, rule Rule) (*rules.SecGroupRule, error) {
-	opts, err := rule.ToCreateOpts()
+func CreateRule(os *OpenStack, rule RuleCreateOpts) (*rules.SecGroupRule, error) {
+	name, opts, err := rule.ToCreateOpts()
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +211,7 @@ func Attach(os *OpenStack, vps *Vps, groupName string) error {
 	opts := ports.UpdateOpts{
 		SecurityGroups: secGroupIds,
 	}
-	rs := ports.Update(os.Network, vps.Ports[0].PortId, opts)
+	rs := ports.Update(os.Network, vps.ExternalPort.PortId, opts)
 	if rs.Err != nil {
 		return rs.Err
 	}
@@ -241,7 +237,7 @@ func Detach(os *OpenStack, vps *Vps, groupName string) error {
 	opts := ports.UpdateOpts{
 		SecurityGroups: secGroupIds,
 	}
-	rs := ports.Update(os.Network, vps.Ports[0].PortId, opts)
+	rs := ports.Update(os.Network, vps.ExternalPort.PortId, opts)
 	if rs.Err != nil {
 		return rs.Err
 	}

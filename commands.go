@@ -1,12 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
-
 	"sort"
-
-	"bytes"
 
 	"github.com/hironobu-s/conoha-net/conoha"
 	"github.com/urfave/cli"
@@ -203,17 +201,23 @@ func cmdCreateRule(c *cli.Context) {
 		ExitOnError(err)
 	}
 
-	rule := conoha.Rule{
-		Direction:      c.String("direction"),
-		EtherType:      c.String("ether-type"),
-		PortRange:      c.String("port-range"),
-		Protocol:       c.String("protocol"),
-		RemoteGroupID:  c.String("remote-group-id"),
-		RemoteIPPrefix: c.String("remote-ip-prefix"),
+	var name string
+	if len(c.Args()) > 0 {
+		name = c.Args()[0]
+	} else {
+		name = ""
+	}
+	rule := conoha.RuleCreateOpts{
+		SecurityGroupName: name,
+		Direction:         c.String("direction"),
+		EtherType:         c.String("ether-type"),
+		PortRange:         c.String("port-range"),
+		Protocol:          c.String("protocol"),
+		RemoteGroupID:     c.String("remote-group-id"),
+		RemoteIPPrefix:    c.String("remote-ip-prefix"),
 	}
 
-	name := c.Args()[0]
-	rt, err := conoha.CreateRule(openstack, name, rule)
+	rt, err := conoha.CreateRule(openstack, rule)
 	if err != nil {
 		ExitOnError(err)
 	}
@@ -254,7 +258,7 @@ func cmdListGroup(c *cli.Context) {
 	// Display
 	var data DisplayData
 	if len(groups) > 0 {
-		data = append(data, []string{"Name", "Direction", "EtherType", "Proto", "IP Range", "Port"})
+		data = append(data, []string{"SecGroupName", "Direction", "EtherType", "Proto", "IP Range", "Port"})
 		for _, sg := range groups {
 			for _, rule := range sg.Rules {
 				cols := make([]string, 0, 6)
@@ -336,54 +340,11 @@ func cmdList(c *cli.Context) {
 	if err != nil {
 		ExitOnError(err)
 	}
-	OutputVps(vpss)
-}
 
-func cmdAttachOrDetach(c *cli.Context, mode string) {
-	var err error
-
-	// security group name to attach or detach
-	if c.NArg() == 0 {
-		err = fmt.Errorf("Please specify the security group name")
-		ExitOnError(err)
-	}
-	secGroup := c.Args()[0]
-
-	// initialize openstack
-	openstack, err = conoha.NewOpenStack()
-	if err != nil {
-		ExitOnError(err)
-	}
-
-	// detect vps to attach or detach
-	vps, err := queryVps(c)
-	if err != nil {
-		ExitOnError(err)
-	}
-
-	// run
-	if mode != "attach" && mode != "detach" {
-		err = fmt.Errorf(`"mode" has to be either "attach" or "detach"`)
-		ExitOnError(err)
-	}
-
-	if mode == "attach" {
-		if err = conoha.Attach(openstack, vps, secGroup); err != nil {
-			ExitOnError(err)
-		}
-	} else {
-		if err = conoha.Detach(openstack, vps, secGroup); err != nil {
-			ExitOnError(err)
-		}
-	}
-}
-
-func OutputVps(vpss []conoha.Vps) {
 	numVps := len(vpss)
 	data := make([][]string, 0, numVps)
-	data = append(data, []string{"VPS", "NameTag", "SecGroup"})
+	data = append(data, []string{"NameTag", "IPv4", "IPv6", "SecGroup"})
 	for _, vps := range vpss {
-
 		var buf bytes.Buffer
 		var i = 0
 		for _, sg := range vps.SecurityGroups {
@@ -394,10 +355,68 @@ func OutputVps(vpss []conoha.Vps) {
 			}
 		}
 
-		data = append(data, []string{vps.Ports[0].IPv4Address, vps.NameTag, buf.String()})
+		data = append(data, []string{
+			vps.NameTag,
+			vps.ExternalIPv4Address.String(),
+			vps.ExternalIPv6Address.String(),
+			buf.String(),
+		})
 	}
 
 	outputTable(data, true)
+}
+
+func cmdAttachOrDetach(c *cli.Context, mode string) {
+	var err error
+	var vps *conoha.Vps
+	var secGroup string
+
+	// security group name to attach or detach
+	if c.NArg() == 0 {
+		err = fmt.Errorf("Please specify the security group name")
+		goto ON_ERROR
+	}
+	secGroup = c.Args()[0]
+
+	// initialize openstack
+	openstack, err = conoha.NewOpenStack()
+	if err != nil {
+		goto ON_ERROR
+	}
+
+	// detect vps to attach or detach
+	vps, err = queryVps(c)
+	if err != nil {
+		goto ON_ERROR
+	}
+
+	// fetch details of port and security groups
+	if err := vps.PopulateSecurityGroups(openstack); err != nil {
+		goto ON_ERROR
+	}
+	if err := vps.PopulatePorts(openstack); err != nil {
+		goto ON_ERROR
+	}
+
+	// run
+	if mode != "attach" && mode != "detach" {
+		err = fmt.Errorf(`"mode" has to be either "attach" or "detach"`)
+		goto ON_ERROR
+	}
+
+	if mode == "attach" {
+		if err = conoha.Attach(openstack, vps, secGroup); err != nil {
+			goto ON_ERROR
+		}
+	} else {
+		if err = conoha.Detach(openstack, vps, secGroup); err != nil {
+			goto ON_ERROR
+		}
+	}
+	return
+
+ON_ERROR:
+	ExitOnError(err)
 }
 
 func outputTable(data [][]string, isFirstHeader bool) {
