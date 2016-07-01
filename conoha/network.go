@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/k0kubun/pp"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/groups"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/rules"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
@@ -107,8 +106,6 @@ func CreateRule(os *OpenStack, rule RuleCreateOpts) (*rules.SecGroupRule, error)
 		return nil, err
 	}
 	opts.SecGroupID = group.ID
-
-	pp.Printf("%v\n", opts)
 
 	rt := rules.Create(os.Network, opts)
 	if rt.Err != nil {
