@@ -143,6 +143,7 @@ delete-rule   delete a security group rule
 
 GLOBAL OPTIONS:
 --debug, -d    print debug informations.
+--output value, -o value  specify output type. must be either "text" or "json". (default: "text")
 --help, -h     show help
 --version, -v  print the version
 ```
