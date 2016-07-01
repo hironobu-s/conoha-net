@@ -10,7 +10,8 @@ import (
 
 func main() {
 	if err := run(); err != nil {
-		ExitOnError(err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
 	}
 }
 
@@ -36,13 +37,5 @@ func run() error {
 	}
 
 	app.Commands = commands
-	if err := app.Run(os.Args); err != nil {
-		return err
-	}
-	return nil
-}
-
-func ExitOnError(err error) {
-	fmt.Fprintf(os.Stderr, "%s\n", err)
-	os.Exit(1)
+	return app.Run(os.Args)
 }

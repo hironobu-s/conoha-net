@@ -148,33 +148,32 @@ var commands = []cli.Command{
 
 var openstack *conoha.OpenStack
 
-func runCmd(c *cli.Context) error {
+func runCmd(c *cli.Context) (err error) {
 	// Run
 	switch c.Command.Name {
 	case "create-rule":
-		cmdCreateRule(c)
+		err = cmdCreateRule(c)
 	case "delete-rule":
-		cmdDeleteRule(c)
+		err = cmdDeleteRule(c)
 
 	case "list-group":
-		cmdListGroup(c)
+		err = cmdListGroup(c)
 	case "create-group":
-		cmdCreateGroup(c)
+		err = cmdCreateGroup(c)
 	case "delete-group":
-		cmdDeleteGroup(c)
+		err = cmdDeleteGroup(c)
 
 	case "list":
-		cmdList(c)
+		err = cmdList(c)
 	case "attach":
-		cmdAttachOrDetach(c, "attach")
+		err = cmdAttachOrDetach(c, "attach")
 	case "detach":
-		cmdAttachOrDetach(c, "detach")
+		err = cmdAttachOrDetach(c, "detach")
 
 	default:
-		err := fmt.Errorf("Unimplemented command. [%s]", c.Command.Name)
-		ExitOnError(err)
+		return fmt.Errorf("Unimplemented command. [%s]", c.Command.Name)
 	}
-	return nil
+	return err
 }
 
 func queryVps(c *cli.Context) (*conoha.Vps, error) {
@@ -200,11 +199,10 @@ func queryVps(c *cli.Context) (*conoha.Vps, error) {
 	}
 }
 
-func cmdCreateRule(c *cli.Context) {
-	var err error
+func cmdCreateRule(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	var name string
@@ -225,29 +223,27 @@ func cmdCreateRule(c *cli.Context) {
 
 	rt, err := conoha.CreateRule(openstack, rule)
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	fmt.Printf("ID: %s created\n", rt.ID)
+	return nil
 }
 
-func cmdDeleteRule(c *cli.Context) {
-	var err error
+func cmdDeleteRule(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	// uuid of rule to delete
 	if c.NArg() == 0 {
 		err = fmt.Errorf("Please specify the security group name")
-		ExitOnError(err)
+		return err
 	}
 	uuid := c.Args()[0]
 
-	if err = conoha.DeleteRule(openstack, uuid); err != nil {
-		ExitOnError(err)
-	}
+	return conoha.DeleteRule(openstack, uuid)
 }
 
 type DisplayData [][]string
@@ -265,16 +261,15 @@ func (d DisplayData) Less(i, j int) bool {
 	return d[i][1] < d[j][1]
 }
 
-func cmdListGroup(c *cli.Context) {
-	var err error
+func cmdListGroup(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	groups, err := conoha.ListGroup(openstack)
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 	if !c.Bool("all") {
 		groups = conoha.RemoveSystemGroups(groups)
@@ -310,14 +305,13 @@ func cmdListGroup(c *cli.Context) {
 
 	sort.Sort(data)
 
-	outputTable(data, true)
+	return outputTable(data, true)
 }
 
-func cmdCreateGroup(c *cli.Context) {
-	var err error
+func cmdCreateGroup(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	// description
@@ -326,44 +320,38 @@ func cmdCreateGroup(c *cli.Context) {
 	// security group name to create
 	if c.NArg() == 0 {
 		err = fmt.Errorf("Please specify the security group name")
-		ExitOnError(err)
+		return err
 	}
 	name := c.Args()[0]
 
-	if err = conoha.CreateGroup(openstack, name, description); err != nil {
-		ExitOnError(err)
-	}
+	return conoha.CreateGroup(openstack, name, description)
 }
 
-func cmdDeleteGroup(c *cli.Context) {
-	var err error
+func cmdDeleteGroup(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	// security group name to delete
 	if c.NArg() == 0 {
 		err = fmt.Errorf("Please specify the security group name")
-		ExitOnError(err)
+		return err
 	}
 	name := c.Args()[0]
 
-	if err = conoha.DeleteGroup(openstack, name); err != nil {
-		ExitOnError(err)
-	}
+	return conoha.DeleteGroup(openstack, name)
 }
 
-func cmdList(c *cli.Context) {
-	var err error
+func cmdList(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	vpss, err := conoha.ListVps(openstack, nil)
 	if err != nil {
-		ExitOnError(err)
+		return err
 	}
 
 	numVps := len(vpss)
@@ -388,11 +376,10 @@ func cmdList(c *cli.Context) {
 		})
 	}
 
-	outputTable(data, true)
+	return outputTable(data, true)
 }
 
-func cmdAttachOrDetach(c *cli.Context, mode string) {
-	var err error
+func cmdAttachOrDetach(c *cli.Context, mode string) (err error) {
 	var vps *conoha.Vps
 	var secGroup string
 
@@ -441,10 +428,10 @@ func cmdAttachOrDetach(c *cli.Context, mode string) {
 	return
 
 ON_ERROR:
-	ExitOnError(err)
+	return err
 }
 
-func outputTable(data [][]string, isFirstHeader bool) {
+func outputTable(data [][]string, isFirstHeader bool) (err error) {
 	if len(data) == 0 {
 		return
 	}
@@ -468,4 +455,5 @@ func outputTable(data [][]string, isFirstHeader bool) {
 		}
 		fmt.Fprintf(os.Stdout, "\n")
 	}
+	return nil
 }
