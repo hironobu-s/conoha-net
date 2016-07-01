@@ -27,7 +27,7 @@ func run() error {
 		},
 		cli.StringFlag{
 			Name:  "output,o",
-			Usage: `specify output type. must be either "text" or "json". default is "json". `,
+			Usage: `specify output type. must be either "text" or "json".`,
 			Value: "text",
 		},
 	}
