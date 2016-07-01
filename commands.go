@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"sort"
+
+	"encoding/json"
 
 	"github.com/hironobu-s/conoha-net/conoha"
 	"github.com/urfave/cli"
@@ -226,7 +227,12 @@ func cmdCreateRule(c *cli.Context) (err error) {
 		return err
 	}
 
-	fmt.Printf("ID: %s created\n", rt.ID)
+	if c.GlobalString("output") == "json" {
+		return outputJson(map[string]string{"uuid": rt.ID})
+	} else {
+		return outputTable([][]string{[]string{rt.ID}})
+	}
+
 	return nil
 }
 
@@ -246,21 +252,6 @@ func cmdDeleteRule(c *cli.Context) (err error) {
 	return conoha.DeleteRule(openstack, uuid)
 }
 
-type DisplayData [][]string
-
-// Implements Sort interface to sort "Direction" column.
-func (d DisplayData) Len() int {
-	return len(d)
-}
-
-func (d DisplayData) Swap(i, j int) {
-	d[i], d[j] = d[j], d[i]
-}
-
-func (d DisplayData) Less(i, j int) bool {
-	return d[i][1] < d[j][1]
-}
-
 func cmdListGroup(c *cli.Context) (err error) {
 	openstack, err = conoha.NewOpenStack()
 	if err != nil {
@@ -276,36 +267,61 @@ func cmdListGroup(c *cli.Context) (err error) {
 	}
 
 	// Display
-	var data DisplayData
+	data := make([][]string, 0, len(groups))
+	jsondata := make([]map[string]interface{}, 0, len(groups))
+
 	if len(groups) > 0 {
 		data = append(data, []string{"UUID", "SecurityGroup", "Direction", "EtherType", "Proto", "IP Range", "Port"})
 		for _, sg := range groups {
 			for _, rule := range sg.Rules {
 				cols := make([]string, 0, 7)
 				cols = append(cols, rule.ID, sg.Name, rule.Direction, rule.EtherType)
+
+				jsoncols := map[string]interface{}{
+					"uuid":           rule.ID,
+					"security-group": sg.Name,
+					"direction":      rule.Direction,
+					"ether-type":     rule.EtherType,
+					"proto":          "",
+					"ip-range":       "",
+					"port":           "",
+				}
+
 				if rule.Protocol != "" {
 					cols = append(cols, rule.Protocol)
+					jsoncols["proto"] = rule.Protocol
 				} else {
 					cols = append(cols, "ALL")
+					jsoncols["proto"] = "ALL"
 				}
 				cols = append(cols, rule.RemoteIPPrefix)
+				jsoncols["ip-range"] = rule.RemoteIPPrefix
 
 				if rule.PortRangeMin == 0 && rule.PortRangeMax == 0 {
 					cols = append(cols, "ALL")
+					jsoncols["port"] = "ALL"
 				} else {
+					fmt.Sprintf("%d - %d", rule.PortRangeMin, rule.PortRangeMax)
 					cols = append(cols, fmt.Sprintf("%d - %d", rule.PortRangeMin, rule.PortRangeMax))
+					jsoncols["port"] = map[string]int{
+						"min": rule.PortRangeMin,
+						"max": rule.PortRangeMax,
+					}
 				}
 				data = append(data, cols)
+				jsondata = append(jsondata, jsoncols)
 			}
 		}
 
 	} else {
-		data = [][]string{[]string{"No security groups found"}}
+		data = append(data, []string{"No security groups found"})
 	}
 
-	sort.Sort(data)
-
-	return outputTable(data, true)
+	if c.GlobalString("output") == "json" {
+		return outputJson(jsondata)
+	} else {
+		return outputTable(data)
+	}
 }
 
 func cmdCreateGroup(c *cli.Context) (err error) {
@@ -324,7 +340,16 @@ func cmdCreateGroup(c *cli.Context) (err error) {
 	}
 	name := c.Args()[0]
 
-	return conoha.CreateGroup(openstack, name, description)
+	created, err := conoha.CreateGroup(openstack, name, description)
+	if err != nil {
+		return err
+	}
+
+	if c.GlobalString("output") == "json" {
+		return outputJson(map[string]string{"uuid": created.ID})
+	} else {
+		return outputTable([][]string{[]string{created.ID}})
+	}
 }
 
 func cmdDeleteGroup(c *cli.Context) (err error) {
@@ -356,11 +381,15 @@ func cmdList(c *cli.Context) (err error) {
 
 	numVps := len(vpss)
 	data := make([][]string, 0, numVps)
-	data = append(data, []string{"NameTag", "IPv4", "IPv6", "SecGroup"})
+	jsondata := make([]map[string]interface{}, 0, numVps)
+
+	data = append(data, []string{"NameTag", "IPv4", "IPv6", "SecurityGroups"})
 	for _, vps := range vpss {
 		var buf bytes.Buffer
 		var i = 0
+		sgs := make([]string, 0, len(vps.SecurityGroups))
 		for _, sg := range vps.SecurityGroups {
+			sgs = append(sgs, sg.Name)
 			buf.WriteString(sg.Name)
 			i++
 			if len(vps.SecurityGroups) != i {
@@ -374,9 +403,20 @@ func cmdList(c *cli.Context) (err error) {
 			vps.ExternalIPv6Address.String(),
 			buf.String(),
 		})
+
+		jsondata = append(jsondata, map[string]interface{}{
+			"name-tag":        vps.NameTag,
+			"ipv4":            vps.ExternalIPv4Address.String(),
+			"ipv6":            vps.ExternalIPv6Address.String(),
+			"security-groups": sgs,
+		})
 	}
 
-	return outputTable(data, true)
+	if c.GlobalString("output") == "json" {
+		return outputJson(jsondata)
+	} else {
+		return outputTable(data)
+	}
 }
 
 func cmdAttachOrDetach(c *cli.Context, mode string) (err error) {
@@ -417,21 +457,44 @@ func cmdAttachOrDetach(c *cli.Context, mode string) (err error) {
 	}
 
 	if mode == "attach" {
-		if err = conoha.Attach(openstack, vps, secGroup); err != nil {
+		attached, err := conoha.Attach(openstack, vps, secGroup)
+		if err != nil {
 			goto ON_ERROR
 		}
+
+		if c.GlobalString("output") == "json" {
+			return outputJson(map[string]interface{}{"uuid": attached.ID})
+		} else {
+			return outputTable([][]string{[]string{attached.ID}})
+		}
+
 	} else {
-		if err = conoha.Detach(openstack, vps, secGroup); err != nil {
+		detached, err := conoha.Detach(openstack, vps, secGroup)
+		if err != nil {
 			goto ON_ERROR
+		}
+		if c.GlobalString("output") == "json" {
+			return outputJson(map[string]interface{}{"uuid": detached.ID})
+		} else {
+			return outputTable([][]string{[]string{detached.ID}})
 		}
 	}
-	return
 
 ON_ERROR:
 	return err
 }
 
-func outputTable(data [][]string, isFirstHeader bool) (err error) {
+func outputJson(data interface{}) error {
+	strjson, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s", strjson)
+	return nil
+}
+
+func outputTable(data [][]string) (err error) {
 	if len(data) == 0 {
 		return
 	}

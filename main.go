@@ -25,6 +25,11 @@ func run() error {
 			Name:  "debug,d",
 			Usage: "print debug informations.",
 		},
+		cli.StringFlag{
+			Name:  "output,o",
+			Usage: `specify output type. must be either "text" or "json". default is "json". `,
+			Value: "text",
+		},
 	}
 
 	// debug
