@@ -22,7 +22,7 @@ ConoHaには仮想マシン(VPS)が繋がっている仮想スイッチ側にパ
 **Mac OSX**
 
 ```shell
-`curl -sL https://github.com/hironobu-s/conoha-net/releases/download/current/conoha-net-osx.amd64.gz | zcat > conoha-net && chmod +x ./conoha-net
+curl -sL https://github.com/hironobu-s/conoha-net/releases/download/current/conoha-net-osx.amd64.gz | zcat > conoha-net && chmod +x ./conoha-net
 ```
 
 
