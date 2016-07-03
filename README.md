@@ -36,7 +36,7 @@ curl -sL https://github.com/hironobu-s/conoha-net/releases/download/current/cono
 
 [ZIP file](https://github.com/hironobu-s/conoha-net/releases/download/current/conoha-net.amd64.zip)
 
-## 利用の前に
+## デフォルトルールについて
 
 ConoHaにはデフォルトで下記のセキュリティグループが用意されていて変更/削除不可です。VPSへのアタッチ/デタッチは自由にできます。また**default**はアタッチしないと全ての通信が通らなくなるので、事実上必須となります。
 
@@ -48,11 +48,30 @@ ConoHaにはデフォルトで下記のセキュリティグループが用意�
 
 conoha-netのセキュリティグループを一覧表示するコマンドlist-groupは、デフォルトで**これらを表示しません**。--allオプションを明示的に指定する必要があります。
 
-## チュートリアル
+## 使い方
 
-典型的な使い方である、セキュリティグループを有効にしてソースIPでTCPポート制限を行ってみます。
+例として、mygroupと言う名前のセキュリティグループを作成して、133.130.0.0/16からTCP 22番ポート宛の通信のみを許可するルールを作成してみます。
 
-### 1. セキュリティグループを作成する
+### 1. 認証
+
+conoha-netを実行するには、APIの認証情報を環境変数にセットする必要があります。
+
+I認証情報は「APIユーザ名」「APIパスワード」「テナント名 or テナントID」です。これらの情報は[ConoHaのコントロールパネル](https://manage.conoha.jp/API/)にあります。
+
+以下はbashの例です。
+
+```shell
+export OS_USERNAME=[username]
+export OS_PASSWORD=[password]
+export OS_TENANT_NAME=[tenant name]
+export OS_AUTH_URL=[identity endpoint]
+export OS_REGION_NAME=[region]
+```
+
+参考: https://wiki.openstack.org/wiki/OpenStackClient/Authentication
+
+
+### 2. セキュリティグループを作成する
 
 create-groupで**my-group**と言う名前のセキュリティグループを作成します。
 
