@@ -58,7 +58,7 @@ func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err
 		r.Protocol = ""
 
 	} else {
-		return name, opts, fmt.Errorf(`invalid protocol`)
+		return name, opts, fmt.Errorf(`invalid protocol[%s]`, r.Protocol)
 	}
 
 	if r.PortRange != "" {
