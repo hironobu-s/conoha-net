@@ -190,7 +190,10 @@ func DeleteGroup(os *OpenStack, name string) error {
 }
 
 // Attach security group to VPS and return attached security group.
-func Attach(os *OpenStack, vps *Vps, groupName string) (attached *groups.SecGroup, err error) {
+//
+// As for fixedIps or allowedAddressPairs,
+// if those arguments are nil, current settings will be retained (will not be sent to API).
+func Attach(os *OpenStack, vps *Vps, groupName string, fixedIps []string, allowedAddressPairs []string) (attached *groups.SecGroup, err error) {
 	sgs, err := ListGroup(os)
 	if err != nil {
 		return nil, err
@@ -213,6 +216,18 @@ func Attach(os *OpenStack, vps *Vps, groupName string) (attached *groups.SecGrou
 
 	opts := ports.UpdateOpts{
 		SecurityGroups: secGroupIds,
+	}
+
+	if fixedIps != nil {
+		opts.FixedIPs = fixedIps
+	}
+
+	if allowedAddressPairs != nil {
+		for _, ip := range allowedAddressPairs {
+			opts.AllowedAddressPairs = append(opts.AllowedAddressPairs, ports.AddressPair{
+				IPAddress: ip,
+			})
+		}
 	}
 
 	_, err = ports.Update(os.Network, vps.ExternalPort.PortId, opts).Extract()

@@ -7,6 +7,8 @@ import (
 
 	"encoding/json"
 
+	"strings"
+
 	"github.com/hironobu-s/conoha-net/conoha"
 	"github.com/urfave/cli"
 )
@@ -41,9 +43,20 @@ var commands = []cli.Command{
 		Name:    "attach",
 		Aliases: []string{},
 		Usage:   "attach a security group to VPS",
-		Flags: append(queryVpsFlags, cli.StringFlag{
-			Name: "secgroup, s",
-		}),
+		Flags: append(queryVpsFlags,
+			cli.StringFlag{
+				Name:  "secgroup, s",
+				Usage: "Security group name",
+			},
+			cli.StringFlag{
+				Name:   "fixed-ips, f",
+				Hidden: true,
+			},
+			cli.StringFlag{
+				Name:   "allowed-address-pairs, p",
+				Hidden: true,
+			},
+		),
 		ArgsUsage: "security-group-name",
 		Action:    runCmd,
 	},
@@ -457,7 +470,17 @@ func cmdAttachOrDetach(c *cli.Context, mode string) (err error) {
 	}
 
 	if mode == "attach" {
-		attached, err := conoha.Attach(openstack, vps, secGroup)
+		var fixedIps, allowedAddressPairs []string = nil, nil
+
+		if c.IsSet("fixed-ips") {
+			fixedIps = strings.Split(c.String("fixed-ips"), ",")
+		}
+
+		if c.IsSet("allowed-address-pairs") {
+			allowedAddressPairs = strings.Split(c.String("allowed-address-pairs"), ",")
+		}
+
+		attached, err := conoha.Attach(openstack, vps, secGroup, fixedIps, allowedAddressPairs)
 		if err != nil {
 			goto ON_ERROR
 		}
