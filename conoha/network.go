@@ -2,6 +2,7 @@ package conoha
 
 import (
 	"fmt"
+	"errors"
 	"regexp"
 	"strconv"
 	"strings"
@@ -72,14 +73,31 @@ func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err
 	}
 
 	if r.PortRange != "" {
-		m, err := regexp.MatchString(`^[0-9]+\:[0-9]+$`, r.PortRange)
+		m, err := regexp.MatchString(`^[0-9]+[\-:][0-9]+$`, r.PortRange)
 		if err != nil {
 			return name, opts, err
 
 		} else if m {
-			ps := strings.Split(r.PortRange, ":")
-			opts.PortRangeMin, _ = strconv.Atoi(ps[0])
-			opts.PortRangeMax, _ = strconv.Atoi(ps[1])
+			p := strings.Index(r.PortRange, ":")
+			if p < 0 {
+				p = strings.Index(r.PortRange, "-")
+			}
+
+			if p < 0 {
+				// ないはず
+				return name, opts, errors.New("invalid port range(may be a wrong regular expression)")
+			}
+			
+			opts.PortRangeMin, err = strconv.Atoi(r.PortRange[:p])
+			if err != nil {
+				// ないはず
+				return name, opts, errors.New("invalid port range(may be a wrong regular expression)")
+			}
+			opts.PortRangeMax, err = strconv.Atoi(r.PortRange[p+1:])
+			if err != nil {
+				// ないはず
+				return name, opts, errors.New("invalid port range(may be a wrong regular expression)")
+			}
 
 		} else {
 			p, err := strconv.Atoi(r.PortRange)
