@@ -3,12 +3,9 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"os"
-
+	"os"	
 	"encoding/json"
-
 	"strings"
-
 	"github.com/hironobu-s/conoha-net/conoha"
 	"github.com/urfave/cli"
 )

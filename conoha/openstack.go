@@ -2,9 +2,9 @@ package conoha
 
 import (
 	"os"
-
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
+	
+	"github.com/gophercloud/gophercloud"
+	"github.com/gophercloud/gophercloud/openstack"
 )
 
 type OpenStack struct {

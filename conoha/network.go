@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/groups"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/security/rules"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 )
 
 // Specity the system created security groups and prefix
@@ -35,27 +35,37 @@ func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err
 	}
 	name = r.SecurityGroupName
 
-	if r.Direction == "ingress" || r.Direction == "egress" {
-		opts.Direction = r.Direction
+	if r.Direction == "ingress" {
+		opts.Direction = rules.DirIngress
+
+	} else if  r.Direction == "egress" {
+		opts.Direction = rules.DirEgress
 
 	} else {
 		return name, opts, fmt.Errorf(`"direction" must be either "ingress" or "egress"`)
 	}
 
-	if r.EtherType == "IPv4" || r.EtherType == "IPv6" {
-		opts.EtherType = r.EtherType
+	if r.EtherType == "IPv4" {
+		opts.EtherType = rules.EtherType4
+
+	} else if r.EtherType == "IPv6" {
+		opts.EtherType = rules.EtherType6
 
 	} else {
 		return name, opts, fmt.Errorf(`"ether-type" must be either "IPv4" or "IPv6"`)
 	}
 
-	if r.Protocol == "tcp" ||
-		r.Protocol == "udp" ||
-		r.Protocol == "icmp" {
-		opts.Protocol = r.Protocol
+	if r.Protocol == "tcp" {
+		opts.Protocol = rules.ProtocolTCP
+
+	} else if r.Protocol == "udp" {
+		opts.Protocol = rules.ProtocolUDP
+
+	} else if r.Protocol == "icmp" {
+		opts.Protocol = rules.ProtocolICMP
 
 	} else if r.Protocol == "all" {
-		r.Protocol = ""
+		opts.Protocol = ""
 
 	} else {
 		return name, opts, fmt.Errorf(`invalid protocol[%s]`, r.Protocol)
@@ -215,7 +225,7 @@ func Attach(os *OpenStack, vps *Vps, groupName string, fixedIps []string, allowe
 	}
 
 	opts := ports.UpdateOpts{
-		SecurityGroups: secGroupIds,
+		SecurityGroups: &secGroupIds,
 	}
 
 	if fixedIps != nil {
@@ -224,7 +234,7 @@ func Attach(os *OpenStack, vps *Vps, groupName string, fixedIps []string, allowe
 
 	if allowedAddressPairs != nil {
 		for _, ip := range allowedAddressPairs {
-			opts.AllowedAddressPairs = append(opts.AllowedAddressPairs, ports.AddressPair{
+			*opts.AllowedAddressPairs = append(*opts.AllowedAddressPairs, ports.AddressPair{
 				IPAddress: ip,
 			})
 		}
@@ -254,7 +264,7 @@ func Detach(os *OpenStack, vps *Vps, groupName string) (detached *secgroups.Secu
 	}
 
 	opts := ports.UpdateOpts{
-		SecurityGroups: secGroupIds,
+		SecurityGroups: &secGroupIds,
 	}
 	_, err = ports.Update(os.Network, vps.ExternalPort.PortId, opts).Extract()
 	if err != nil {
