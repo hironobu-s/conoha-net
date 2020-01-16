@@ -36,18 +36,6 @@ curl -sL https://github.com/hironobu-s/conoha-net/releases/download/current/cono
 
 [ZIP file](https://github.com/hironobu-s/conoha-net/releases/download/current/conoha-net.amd64.zip)
 
-## デフォルトルールについて
-
-ConoHaにはデフォルトで下記のセキュリティグループが用意されていて変更/削除不可です。VPSへのアタッチ/デタッチは自由にできます。また**default**はアタッチしないと全ての通信が通らなくなるので、事実上必須となります。
-
-* default
-* gncs-ipv4-all
-* gncs-ipv4-ssh
-* gncs-ipv4-web
-* gncs-ipv6-all
-
-conoha-netのセキュリティグループを一覧表示するコマンドlist-groupは、デフォルトで**これらを表示しません**。--allオプションを明示的に指定する必要があります。
-
 ## 使い方
 
 例として、mygroupと言う名前のセキュリティグループを作成して、133.130.0.0/16からTCP 22番ポート宛の通信のみを許可するルールを作成してみます。
@@ -166,6 +154,18 @@ GLOBAL OPTIONS:
 --help, -h     show help
 --version, -v  print the version
 ```
+
+## (注意)あらかじめConoHa側で用意されているセキュリティグループについて
+
+ConoHaには標準で下記のセキュリティグループが用意されています。これらはVPSへのアタッチ/デタッチは自由にできますが、変更/削除はできないようになっています。また**defaultはアタッチしないと全ての通信が通らなくなる**ので、事実上アタッチが必須となります。
+
+* default
+* gncs-ipv4-all
+* gncs-ipv4-ssh
+* gncs-ipv4-web
+* gncs-ipv6-all
+
+conoha-netのセキュリティグループを一覧表示するコマンドlist-groupは、デフォルトで**これらを表示しません**。--allオプションを明示的に指定する必要があります。
 
 ## ライセンス
 
