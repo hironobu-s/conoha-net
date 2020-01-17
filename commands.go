@@ -2,10 +2,11 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"os"	
 	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
+
 	"github.com/hironobu-s/conoha-net/conoha"
 	"github.com/urfave/cli"
 )
