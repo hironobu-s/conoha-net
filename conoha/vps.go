@@ -5,11 +5,11 @@ import (
 	"net"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/mitchellh/mapstructure"
 )
 
 type Vps struct {
@@ -23,9 +23,9 @@ type Vps struct {
 }
 
 type AttachedPort struct {
-	PortId    string     `mapstructure:"port_id" json:"port_id"`
-	PortState string     `mapstructure:"port_state" json:"port_state"`
-	FixedIPs  []ports.IP `mapstructure:"fixed_ips" json:"fixed_ips"`
+	PortId    string     `json:"port_id"`
+	PortState string     `json:"port_state"`
+	FixedIPs  []ports.IP `json:"fixed_ips"`
 }
 
 func (v *Vps) FromServer(s servers.Server) error {
@@ -106,10 +106,21 @@ func (v *Vps) PopulatePorts(os *OpenStack) error {
 	}
 
 	var resp struct {
-		Ports []AttachedPort `mapstructure:"interfaceAttachments" json:"ports"`
+		Ports []AttachedPort `json:"interfaceAttachments"`
 	}
 
-	if err = mapstructure.Decode(result.Body, &resp); err != nil {
+	c := &mapstructure.DecoderConfig{
+		TagName:          "json",
+		WeaklyTypedInput: true,
+		ZeroFields:       true,
+		Result:           &resp,
+	}
+	d, err := mapstructure.NewDecoder(c)
+	if err != nil {
+		return err
+	}
+	//if err = mapstructure.Decode(result.Body, &resp); err != nil {
+	if err = d.Decode(result.Body); err != nil {
 		return err
 	}
 	v.Ports = resp.Ports
