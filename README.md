@@ -42,18 +42,15 @@ curl -sL https://github.com/hironobu-s/conoha-net/releases/download/current/cono
 
 ### 1. 認証
 
-conoha-netを実行するには、APIの認証情報を環境変数にセットする必要があります。
+conoha-netを実行するには、ConoHa APIへ接続するための認証情報が必要です。 認証情報は「APIユーザ名」「APIパスワード」「テナントID」「エンドポイント」で、[ConoHaのコントロールパネル](https://manage.conoha.jp/API/)から確認することができます。
 
-I認証情報は「APIユーザ名」「APIパスワード」「テナント名 or テナントID」です。これらの情報は[ConoHaのコントロールパネル](https://manage.conoha.jp/API/)にあります。
-
-以下はbashの例です。
+そして認証情報をOSの環境変数にセットします。以下はbashで環境変数を設定する例です。
 
 ```shell
-export OS_USERNAME=[username]
-export OS_PASSWORD=[password]
-export OS_TENANT_NAME=[tenant name]
-export OS_AUTH_URL=[identity endpoint]
-export OS_REGION_NAME=[region]
+export OS_USERNAME=[APIユーザー名]
+export OS_PASSWORD=[APIパスワード]
+export OS_TENANT_ID=[テナントID]
+export OS_AUTH_URL=[Identity ServiceのエンドポイントURL]
 ```
 
 参考: https://wiki.openstack.org/wiki/OpenStackClient/Authentication
