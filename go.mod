@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/gophercloud/gophercloud v0.7.0
+	github.com/kr/pretty v0.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/racker/perigee v0.1.0 // indirect
 	github.com/rackspace/gophercloud v1.0.0
