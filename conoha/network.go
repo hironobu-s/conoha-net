@@ -260,6 +260,10 @@ func Attach(os *OpenStack, vps *Vps, groupName string, fixedIps []string, allowe
 
 	_, err = ports.Update(os.Network, vps.ExternalPort.PortId, opts).Extract()
 	if err != nil {
+		ed, ok := err.(gophercloud.ErrDefault400)
+		if ok {
+			err = errors.New(string(ed.Body))
+		}
 		return nil, err
 	}
 
@@ -286,6 +290,10 @@ func Detach(os *OpenStack, vps *Vps, groupName string) (detached *secgroups.Secu
 	}
 	_, err = ports.Update(os.Network, vps.ExternalPort.PortId, opts).Extract()
 	if err != nil {
+		ed, ok := err.(gophercloud.ErrDefault400)
+		if ok {
+			err = errors.New(string(ed.Body))
+		}
 		return nil, err
 	}
 	return detached, nil
