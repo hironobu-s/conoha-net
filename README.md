@@ -136,7 +136,7 @@ USAGE:
 commands [global options] command [command options] [arguments...]
 
 VERSION:
-0.1
+0.2
 
 COMMANDS:
 list          list all VPS
@@ -166,6 +166,18 @@ ConoHaには標準で下記のセキュリティグループが用意されて�
 * gncs-ipv6-all
 
 conoha-netのセキュリティグループを一覧表示するコマンドlist-groupは、デフォルトで**これらを表示しません**。--allオプションを明示的に指定する必要があります。
+
+## 変更履歴
+
+### 0.2
+
+* ポートの指定で 30000-31000 のようなハイフン形式が指定できなかったのを修正
+* 利用しているライブラリを最新のものにアップデート
+
+### 0.1
+
+* リリース
+
 
 ## ライセンス
 
