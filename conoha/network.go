@@ -1,12 +1,13 @@
 package conoha
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/groups"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/security/rules"
@@ -39,7 +40,7 @@ func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err
 	if r.Direction == "ingress" {
 		opts.Direction = rules.DirIngress
 
-	} else if  r.Direction == "egress" {
+	} else if r.Direction == "egress" {
 		opts.Direction = rules.DirEgress
 
 	} else {
@@ -87,7 +88,7 @@ func (r *RuleCreateOpts) ToCreateOpts() (name string, opts rules.CreateOpts, err
 				// ないはず
 				return name, opts, errors.New("invalid port range(may be a wrong regular expression)")
 			}
-			
+
 			opts.PortRangeMin, err = strconv.Atoi(r.PortRange[:p])
 			if err != nil {
 				// ないはず
